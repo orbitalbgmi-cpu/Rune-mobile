@@ -9,13 +9,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-    <!-- App identity -->
     <ApplicationTitle>RUNE</ApplicationTitle>
     <ApplicationId>com.onyx.runemobile</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>0.1</ApplicationDisplayVersion>
 
-    <!-- Android target -->
     <SupportedOSPlatformVersion>26.0</SupportedOSPlatformVersion>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
   </PropertyGroup>
@@ -25,6 +23,14 @@
     <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#0d1117" BaseSize="128,128" />
     <MauiImage Include="Resources\Images\*" />
     <MauiFont Include="Resources\Fonts\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LLamaSharp" Version="0.27.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AndroidNativeLibrary Include="lib\arm64-v8a\*.so" />
   </ItemGroup>
 
 </Project>
