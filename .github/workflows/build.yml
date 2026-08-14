@@ -22,13 +22,13 @@ jobs:
         run: dotnet workload install maui-android
 
       - name: Restore dependencies
-        run: dotnet restore RuneMobile/RuneMobile.csproj
+        run: dotnet restore RuneMobile.csproj
 
       - name: Build APK
-        run: dotnet build RuneMobile/RuneMobile.csproj -f net9.0-android -c Release
+        run: dotnet build RuneMobile.csproj -f net9.0-android -c Release
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: RUNE-Mobile-APK
-          path: RuneMobile/bin/Release/net9.0-android/*.apk
+          path: bin/Release/net9.0-android/*.apk
