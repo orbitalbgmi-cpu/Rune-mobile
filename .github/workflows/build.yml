@@ -1,0 +1,34 @@
+name: Build RUNE Mobile APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Restore dependencies
+        run: dotnet restore RuneMobile/RuneMobile.csproj
+
+      - name: Build APK
+        run: dotnet build RuneMobile/RuneMobile.csproj -f net9.0-android -c Release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RUNE-Mobile-APK
+          path: RuneMobile/bin/Release/net9.0-android/*.apk
