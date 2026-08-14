@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="RuneMobile.MainPage"
+             BackgroundColor="#0d1117">
+    <VerticalStackLayout Padding="30,0" Spacing="25" VerticalOptions="Center">
+        <Label Text="RUNE" FontSize="32" HorizontalOptions="Center" TextColor="#e6edf3" />
+        <Label Text="Offline AI Assistant — Phase 1 Shell" FontSize="16" HorizontalOptions="Center" TextColor="#8b949e" />
+    </VerticalStackLayout>
+</ContentPage>
