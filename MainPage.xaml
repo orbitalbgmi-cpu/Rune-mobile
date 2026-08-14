@@ -1,10 +1,41 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:RuneMobile.Models"
              x:Class="RuneMobile.MainPage"
              BackgroundColor="#0d1117">
-    <VerticalStackLayout Padding="30,0" Spacing="25" VerticalOptions="Center">
-        <Label Text="RUNE" FontSize="32" HorizontalOptions="Center" TextColor="#e6edf3" />
-        <Label Text="Offline AI Assistant — Phase 1 Shell" FontSize="16" HorizontalOptions="Center" TextColor="#8b949e" />
-    </VerticalStackLayout>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <Label Grid.Row="0" Text="RUNE" FontSize="24" FontAttributes="Bold"
+               TextColor="#e6edf3" Padding="20,15" />
+
+        <CollectionView Grid.Row="1" x:Name="ChatList" ItemsSource="{Binding Messages}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ChatMessage">
+                    <Grid Padding="15,5">
+                        <Frame BackgroundColor="{Binding BubbleColor}"
+                               HorizontalOptions="{Binding Alignment}"
+                               CornerRadius="14" Padding="12,8" MaximumWidthRequest="280"
+                               BorderColor="Transparent">
+                            <Label Text="{Binding Text}" TextColor="#e6edf3" FontSize="15" />
+                        </Frame>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Padding="12" ColumnSpacing="8">
+            <Frame Grid.Column="0" BackgroundColor="#161b22" CornerRadius="20"
+                   Padding="12,4" BorderColor="#30363d">
+                <Entry x:Name="InputBox" Placeholder="Message RUNE..."
+                       PlaceholderColor="#8b949e" TextColor="#e6edf3"
+                       BackgroundColor="Transparent" ReturnCommand="{Binding SendCommand}" />
+            </Frame>
+            <Button Grid.Column="1" Text="➤" WidthRequest="44" HeightRequest="44"
+                    CornerRadius="22" BackgroundColor="#1f6feb" TextColor="White"
+                    Clicked="OnSendClicked" />
+        </Grid>
+
+    </Grid>
 </ContentPage>
