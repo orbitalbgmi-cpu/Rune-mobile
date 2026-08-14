@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -21,6 +21,34 @@ jobs:
       - name: Install MAUI Android workload
         run: dotnet workload install maui-android
 
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27c
+
+      - name: Clone llama.cpp
+        run: git clone --depth 1 https://github.com/ggerganov/llama.cpp native-llama
+
+      - name: Configure llama.cpp for Android
+        run: |
+          cmake -S native-llama -B native-llama/build-android \
+            -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-26 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=ON \
+            -DLLAMA_CURL=OFF
+
+      - name: Build llama.cpp for Android
+        run: cmake --build native-llama/build-android --config Release -j 4
+
+      - name: Copy native libraries into project
+        run: |
+          mkdir -p lib/arm64-v8a
+          find native-llama/build-android -name "*.so" -exec cp {} lib/arm64-v8a/ \;
+          ls -la lib/arm64-v8a/
+
       - name: Restore dependencies
         run: dotnet restore RuneMobile.csproj
 
@@ -31,4 +59,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: RUNE-Mobile-APK
-          path: bin/Release/net9.0-android/*.apk
+          path: bin/Release/net9.0-android/*Signed.apk
