@@ -28,11 +28,11 @@ jobs:
           ndk-version: r27c
 
       - name: Clone llama.cpp
-        run: git clone --depth 1 https://github.com/ggerganov/llama.cpp native-llama
+        run: git clone --depth 1 https://github.com/ggerganov/llama.cpp ${{ runner.temp }}/llama-src
 
       - name: Configure llama.cpp for Android
         run: |
-          cmake -S native-llama -B native-llama/build-android \
+          cmake -S ${{ runner.temp }}/llama-src -B ${{ runner.temp }}/llama-build \
             -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-26 \
@@ -41,12 +41,12 @@ jobs:
             -DLLAMA_CURL=OFF
 
       - name: Build llama.cpp for Android
-        run: cmake --build native-llama/build-android --config Release -j 4
+        run: cmake --build ${{ runner.temp }}/llama-build --config Release -j 4
 
       - name: Copy native libraries into project
         run: |
           mkdir -p lib/arm64-v8a
-          find native-llama/build-android -name "*.so" -exec cp {} lib/arm64-v8a/ \;
+          find ${{ runner.temp }}/llama-build -name "*.so" -exec cp {} lib/arm64-v8a/ \;
           ls -la lib/arm64-v8a/
 
       - name: Restore dependencies
