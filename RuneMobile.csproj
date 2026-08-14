@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net9.0-android</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>RuneMobile</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- App identity -->
+    <ApplicationTitle>RUNE</ApplicationTitle>
+    <ApplicationId>com.onyx.runemobile</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>0.1</ApplicationDisplayVersion>
+
+    <!-- Android target -->
+    <SupportedOSPlatformVersion>26.0</SupportedOSPlatformVersion>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#0d1117" />
+    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#0d1117" BaseSize="128,128" />
+    <MauiImage Include="Resources\Images\*" />
+    <MauiFont Include="Resources\Fonts\*" />
+  </ItemGroup>
+
+</Project>
