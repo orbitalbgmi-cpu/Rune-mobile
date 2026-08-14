@@ -23,7 +23,7 @@ public class LlamaService
 
         var nativeLibDir = Android.App.Application.Context.ApplicationInfo!.NativeLibraryDir;
         var llamaLib = Path.Combine(nativeLibDir!, "libllama.so");
-        NativeLibraryConfig.All.WithLibrary(llamaLib);
+        NativeLibraryConfig.All.WithLibrary(llamaLib, null);
 
         var parameters = new ModelParams(ModelPath)
         {
