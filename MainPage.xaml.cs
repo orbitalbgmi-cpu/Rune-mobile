@@ -15,6 +15,51 @@ public partial class MainPage : ContentPage
         BindingContext = this;
     }
 
+    private async void OnImportChatModelClicked(object sender, EventArgs e)
+    {
+        await ImportModelAsync("chat-model.gguf");
+    }
+
+    private async void OnImportImageModelClicked(object sender, EventArgs e)
+    {
+        await ImportModelAsync("sd-model.gguf");
+    }
+
+    private async Task ImportModelAsync(string targetFileName)
+    {
+        try
+        {
+            var result = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = $"Select {targetFileName}"
+            });
+
+            if (result == null) return;
+
+            var modelsDir = Path.Combine(
+                Android.App.Application.Context.GetExternalFilesDir(null)!.AbsolutePath,
+                "models");
+            Directory.CreateDirectory(modelsDir);
+
+            var targetPath = Path.Combine(modelsDir, targetFileName);
+
+            Messages.Add(new ChatMessage { Text = $"Copying {targetFileName}... this may take a minute for large files.", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+
+            using var sourceStream = await result.OpenReadAsync();
+            using var destStream = File.Create(targetPath);
+            await sourceStream.CopyToAsync(destStream);
+
+            Messages.Add(new ChatMessage { Text = $"{targetFileName} imported successfully.", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+        }
+        catch (Exception ex)
+        {
+            Messages.Add(new ChatMessage { Text = $"Import failed: {ex.Message}", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+        }
+    }
+
     private async void OnSendClicked(object sender, EventArgs e)
     {
         var text = InputBox.Text;
@@ -27,7 +72,7 @@ public partial class MainPage : ContentPage
         {
             Messages.Add(new ChatMessage
             {
-                Text = "No model found. Place chat-model.gguf in Android/data/com.onyx.runemobile/files/models/",
+                Text = "No chat model found. Tap 'Import Chat Model' above.",
                 IsUser = false
             });
             ChatList.ScrollTo(Messages.Count - 1);
