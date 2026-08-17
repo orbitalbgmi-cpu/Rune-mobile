@@ -5,12 +5,19 @@
              x:Class="RuneMobile.MainPage"
              BackgroundColor="#0d1117">
 
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <Label Grid.Row="0" Text="RUNE" FontSize="24" FontAttributes="Bold"
-               TextColor="#e6edf3" Padding="20,15" />
+               TextColor="#e6edf3" Padding="20,15,20,5" />
 
-        <CollectionView Grid.Row="1" x:Name="ChatList" ItemsSource="{Binding Messages}">
+        <HorizontalStackLayout Grid.Row="1" Padding="20,0,20,10" Spacing="10">
+            <Button Text="Import Chat Model" FontSize="12" Clicked="OnImportChatModelClicked"
+                    BackgroundColor="#21262d" TextColor="#e6edf3" CornerRadius="8" Padding="10,6" />
+            <Button Text="Import Image Model" FontSize="12" Clicked="OnImportImageModelClicked"
+                    BackgroundColor="#21262d" TextColor="#e6edf3" CornerRadius="8" Padding="10,6" />
+        </HorizontalStackLayout>
+
+        <CollectionView Grid.Row="2" x:Name="ChatList" ItemsSource="{Binding Messages}">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:ChatMessage">
                     <Grid Padding="15,5">
@@ -25,7 +32,7 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Padding="12" ColumnSpacing="8">
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Padding="12" ColumnSpacing="8">
             <Frame Grid.Column="0" BackgroundColor="#161b22" CornerRadius="20"
                    Padding="12,4" BorderColor="#30363d">
                 <Entry x:Name="InputBox" Placeholder="Message RUNE..."
