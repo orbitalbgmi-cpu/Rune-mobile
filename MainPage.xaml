@@ -39,3 +39,10 @@
                        PlaceholderColor="#8b949e" TextColor="#e6edf3"
                        BackgroundColor="Transparent" ReturnCommand="{Binding SendCommand}" />
             </Frame>
+            <Button Grid.Column="1" Text="➤" WidthRequest="44" HeightRequest="44"
+                    CornerRadius="22" BackgroundColor="#1f6feb" TextColor="White"
+                    Clicked="OnSendClicked" />
+        </Grid>
+
+    </Grid>
+</ContentPage>
