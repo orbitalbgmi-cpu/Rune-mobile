@@ -43,7 +43,7 @@ public partial class MainPage : ContentPage
 
             var targetPath = Path.Combine(modelsDir, targetFileName);
 
-            Messages.Add(new ChatMessage { Text = $"Copying {targetFileName}... this may take a minute for large files.", IsUser = false });
+            Messages.Add(new ChatMessage { Text = $"Copying {targetFileName}...", IsUser = false });
             ChatList.ScrollTo(Messages.Count - 1);
 
             using var sourceStream = await result.OpenReadAsync();
@@ -55,7 +55,7 @@ public partial class MainPage : ContentPage
         }
         catch (Exception ex)
         {
-            Messages.Add(new ChatMessage { Text = $"Import failed: {ex.Message}", IsUser = false });
+            Messages.Add(new ChatMessage { Text = $"Import failed: {ex}", IsUser = false });
             ChatList.ScrollTo(Messages.Count - 1);
         }
     }
@@ -92,7 +92,7 @@ public partial class MainPage : ContentPage
         catch (Exception ex)
         {
             Messages.Remove(thinking);
-            Messages.Add(new ChatMessage { Text = $"Error: {ex.Message}", IsUser = false });
+            Messages.Add(new ChatMessage { Text = $"Error: {ex}", IsUser = false });
         }
 
         ChatList.ScrollTo(Messages.Count - 1);
