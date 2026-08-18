@@ -16,6 +16,10 @@
 
     <SupportedOSPlatformVersion>26.0</SupportedOSPlatformVersion>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
+
+    <AndroidLinkMode>None</AndroidLinkMode>
+    <PublishTrimmed>false</PublishTrimmed>
+    <TrimMode>none</TrimMode>
   </PropertyGroup>
 
   <ItemGroup>
