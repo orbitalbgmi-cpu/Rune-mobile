@@ -1,112 +1,41 @@
-using System.Collections.ObjectModel;
-using RuneMobile.Models;
-using RuneMobile.Services;
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:RuneMobile.Models"
+             x:Class="RuneMobile.MainPage"
+             BackgroundColor="#0d1117">
 
-namespace RuneMobile;
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-public partial class MainPage : ContentPage
-{
-    public ObservableCollection<ChatMessage> Messages { get; set; } = new();
-    private readonly LlamaService _llama = new();
+        <Label Grid.Row="0" Text="RUNE" FontSize="24" FontAttributes="Bold"
+               TextColor="#e6edf3" Padding="20,15,20,5" />
 
-    public MainPage()
-    {
-        InitializeComponent();
-        BindingContext = this;
-    }
+        <HorizontalStackLayout Grid.Row="1" Padding="20,0,20,10" Spacing="10">
+            <Button Text="Import Chat Model" FontSize="12" Clicked="OnImportChatModelClicked"
+                    BackgroundColor="#21262d" TextColor="#e6edf3" CornerRadius="8" Padding="10,6" />
+            <Button Text="Import Image Model" FontSize="12" Clicked="OnImportImageModelClicked"
+                    BackgroundColor="#21262d" TextColor="#e6edf3" CornerRadius="8" Padding="10,6" />
+        </HorizontalStackLayout>
 
-    private async void OnImportChatModelClicked(object sender, EventArgs e)
-    {
-        await ImportModelAsync("chat-model.gguf");
-    }
+        <CollectionView Grid.Row="2" x:Name="ChatList" ItemsSource="{Binding Messages}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ChatMessage">
+                    <Grid Padding="15,5">
+                        <Frame BackgroundColor="{Binding BubbleColor}"
+                               HorizontalOptions="{Binding Alignment}"
+                               CornerRadius="14" Padding="12,8" MaximumWidthRequest="280"
+                               BorderColor="Transparent">
+                            <Label Text="{Binding Text}" TextColor="#e6edf3" FontSize="15" />
+                        </Frame>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
 
-    private async void OnImportImageModelClicked(object sender, EventArgs e)
-    {
-        await ImportModelAsync("sd-model.gguf");
-    }
-
-    private async Task ImportModelAsync(string targetFileName)
-    {
-        try
-        {
-            var result = await FilePicker.Default.PickAsync(new PickOptions
-            {
-                PickerTitle = $"Select {targetFileName}"
-            });
-
-            if (result == null) return;
-
-            var modelsDir = Path.Combine(
-                Android.App.Application.Context.GetExternalFilesDir(null)!.AbsolutePath,
-                "models");
-            Directory.CreateDirectory(modelsDir);
-
-            var targetPath = Path.Combine(modelsDir, targetFileName);
-
-            Messages.Add(new ChatMessage { Text = $"Copying {targetFileName}... this may take a minute for large files.", IsUser = false });
-            ChatList.ScrollTo(Messages.Count - 1);
-
-            using var sourceStream = await result.OpenReadAsync();
-            using var destStream = File.Create(targetPath);
-            await sourceStream.CopyToAsync(destStream);
-
-            Messages.Add(new ChatMessage { Text = $"{targetFileName} imported successfully.", IsUser = false });
-            ChatList.ScrollTo(Messages.Count - 1);
-        }
-        catch (Exception ex)
-        {
-            Messages.Add(new ChatMessage { Text = $"Import failed: {FullError(ex)}", IsUser = false });
-            ChatList.ScrollTo(Messages.Count - 1);
-        }
-    }
-
-    private async void OnSendClicked(object sender, EventArgs e)
-    {
-        var text = InputBox.Text;
-        if (string.IsNullOrWhiteSpace(text)) return;
-
-        Messages.Add(new ChatMessage { Text = text, IsUser = true });
-        InputBox.Text = string.Empty;
-
-        if (!_llama.ModelExists)
-        {
-            Messages.Add(new ChatMessage
-            {
-                Text = "No chat model found. Tap 'Import Chat Model' above.",
-                IsUser = false
-            });
-            ChatList.ScrollTo(Messages.Count - 1);
-            return;
-        }
-
-        var thinking = new ChatMessage { Text = "...", IsUser = false };
-        Messages.Add(thinking);
-        ChatList.ScrollTo(Messages.Count - 1);
-
-        try
-        {
-            var reply = await _llama.GetReplyAsync(text);
-            Messages.Remove(thinking);
-            Messages.Add(new ChatMessage { Text = reply, IsUser = false });
-        }
-        catch (Exception ex)
-        {
-            Messages.Remove(thinking);
-            Messages.Add(new ChatMessage { Text = $"Error: {FullError(ex)}", IsUser = false });
-        }
-
-        ChatList.ScrollTo(Messages.Count - 1);
-    }
-
-    private static string FullError(Exception ex)
-    {
-        var messages = new List<string>();
-        var current = ex;
-        while (current != null)
-        {
-            messages.Add(current.Message);
-            current = current.InnerException;
-        }
-        return string.Join(" | ", messages);
-    }
-}
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Padding="12" ColumnSpacing="8">
+            <Frame Grid.Column="0" BackgroundColor="#161b22" CornerRadius="20"
+                   Padding="12,4" BorderColor="#30363d">
+                <Entry x:Name="InputBox" Placeholder="Message RUNE..."
+                       PlaceholderColor="#8b949e" TextColor="#e6edf3"
+                       BackgroundColor="Transparent" ReturnCommand="{Binding SendCommand}" />
+            </Frame>
