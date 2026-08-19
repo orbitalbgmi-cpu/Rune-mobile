@@ -38,7 +38,8 @@ jobs:
             -DANDROID_PLATFORM=android-26 \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=ON \
-            -DLLAMA_CURL=OFF
+            -DLLAMA_CURL=OFF \
+            -DGGML_OPENMP=OFF
 
       - name: Build llama.cpp for Android
         run: cmake --build ${{ runner.temp }}/llama-build --config Release -j 4
@@ -54,7 +55,8 @@ jobs:
             -DANDROID_PLATFORM=android-26 \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=ON \
-            -DSD_BUILD_SHARED_LIBS=ON
+            -DSD_BUILD_SHARED_LIBS=ON \
+            -DGGML_OPENMP=OFF
 
       - name: Build stable-diffusion.cpp for Android
         run: cmake --build ${{ runner.temp }}/sd-build --config Release -j 4
