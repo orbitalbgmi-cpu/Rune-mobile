@@ -13,6 +13,23 @@ public partial class MainPage : ContentPage
     {
         InitializeComponent();
         BindingContext = this;
+        CheckForCrashLog();
+    }
+
+    private void CheckForCrashLog()
+    {
+        try
+        {
+            var dir = Android.App.Application.Context.GetExternalFilesDir(null)!.AbsolutePath;
+            var path = Path.Combine(dir, "crash-log.txt");
+            if (File.Exists(path))
+            {
+                var content = File.ReadAllText(path);
+                Messages.Add(new ChatMessage { Text = $"Previous crash log:\n{content}", IsUser = false });
+                File.Delete(path);
+            }
+        }
+        catch { }
     }
 
     private async void OnImportChatModelClicked(object sender, EventArgs e)
@@ -50,7 +67,8 @@ public partial class MainPage : ContentPage
             using var destStream = File.Create(targetPath);
             await sourceStream.CopyToAsync(destStream);
 
-            Messages.Add(new ChatMessage { Text = $"{targetFileName} imported successfully.", IsUser = false });
+            var fileInfo = new FileInfo(targetPath);
+            Messages.Add(new ChatMessage { Text = $"{targetFileName} imported successfully ({fileInfo.Length / 1024 / 1024} MB).", IsUser = false });
             ChatList.ScrollTo(Messages.Count - 1);
         }
         catch (Exception ex)
