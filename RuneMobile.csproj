@@ -20,6 +20,7 @@
     <AndroidLinkMode>None</AndroidLinkMode>
     <PublishTrimmed>false</PublishTrimmed>
     <TrimMode>none</TrimMode>
+    <RunAOTCompilation>false</RunAOTCompilation>
   </PropertyGroup>
 
   <ItemGroup>
