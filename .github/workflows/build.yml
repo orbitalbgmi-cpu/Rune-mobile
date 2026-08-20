@@ -75,4 +75,13 @@ jobs:
           ls -la lib/arm64-v8a/
 
       - name: Restore dependencies
-        run: dotnet restore RuneM
+        run: dotnet restore RuneMobile.csproj
+
+      - name: Build APK
+        run: dotnet build RuneMobile.csproj -f net9.0-android -c Release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RUNE-Mobile-APK
+          path: bin/Release/net9.0-android/*Signed.apk
