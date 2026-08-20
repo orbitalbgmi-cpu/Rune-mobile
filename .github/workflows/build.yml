@@ -28,7 +28,10 @@ jobs:
           ndk-version: r27c
 
       - name: Clone llama.cpp
-        run: git clone --depth 1 https://github.com/ggerganov/llama.cpp ${{ runner.temp }}/llama-src
+        run: |
+          git clone https://github.com/ggerganov/llama.cpp ${{ runner.temp }}/llama-src
+          cd ${{ runner.temp }}/llama-src
+          git checkout 3f7c29d318e317b63f54c558bc69803963d7d88c
 
       - name: Configure llama.cpp for Android
         run: |
