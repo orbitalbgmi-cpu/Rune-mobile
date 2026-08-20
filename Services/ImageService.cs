@@ -25,9 +25,13 @@ public class ImageService
         string model_path, string vae_path, string taesd_path,
         string control_net_path, string lora_model_dir, string embed_dir,
         string stacked_id_embed_dir,
-        bool vae_decode_only, bool vae_tiling, bool free_params_immediately,
+        [MarshalAs(UnmanagedType.I1)] bool vae_decode_only,
+        [MarshalAs(UnmanagedType.I1)] bool vae_tiling,
+        [MarshalAs(UnmanagedType.I1)] bool free_params_immediately,
         int n_threads, SdType wtype, RngType rng_type, ScheduleType schedule,
-        bool keep_clip_on_cpu, bool keep_control_net_on_cpu, bool keep_vae_on_cpu);
+        [MarshalAs(UnmanagedType.I1)] bool keep_clip_on_cpu,
+        [MarshalAs(UnmanagedType.I1)] bool keep_control_net_on_cpu,
+        [MarshalAs(UnmanagedType.I1)] bool keep_vae_on_cpu);
 
     [DllImport(SdLib, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private static extern IntPtr txt2img(
@@ -36,7 +40,8 @@ public class ImageService
         int width, int height, SampleMethod sample_method, int sample_steps,
         long seed, int batch_count,
         IntPtr control_cond, float control_strength, float style_strength,
-        bool normalize_input, string input_id_images_path);
+        [MarshalAs(UnmanagedType.I1)] bool normalize_input,
+        string input_id_images_path);
 
     [DllImport(SdLib, CallingConvention = CallingConvention.Cdecl)]
     private static extern void free_sd_ctx(IntPtr sd_ctx);
