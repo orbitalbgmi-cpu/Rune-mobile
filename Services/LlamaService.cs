@@ -1,6 +1,8 @@
+using System.Text.RegularExpressions;
 using LLama;
 using LLama.Common;
 using LLama.Native;
+using LLama.Sampling;
 
 namespace RuneMobile.Services;
 
@@ -42,13 +44,20 @@ public class LlamaService
     {
         if (!_initialized) Initialize();
 
-        var inferenceParams = new InferenceParams
+        var sampling = new DefaultSamplingPipeline
         {
-            MaxTokens = 256,
-            AntiPrompts = new List<string> { "User:", "\n\n" }
+            RepeatPenalty = 1.3f,
+            Temperature = 0.7f
         };
 
-        var prompt = $"User: {userMessage}\nAssistant:";
+        var inferenceParams = new InferenceParams
+        {
+            MaxTokens = 120,
+            AntiPrompts = new List<string> { "User:", "\nUser", "<|im_end|>", "<|im_start|>" },
+            SamplingPipeline = sampling
+        };
+
+        var prompt = $"<|im_start|>system\nYou are RUNE, a helpful offline assistant. Reply in plain text only. Never use emojis or special symbols.<|im_end|>\n<|im_start|>user\n{userMessage}<|im_end|>\n<|im_start|>assistant\n";
         var sb = new System.Text.StringBuilder();
 
         await foreach (var token in _executor!.InferAsync(prompt, inferenceParams))
@@ -56,6 +65,17 @@ public class LlamaService
             sb.Append(token);
         }
 
-        return sb.ToString().Trim();
+        var result = sb.ToString().Trim();
+
+        foreach (var stop in inferenceParams.AntiPrompts)
+        {
+            var idx = result.IndexOf(stop, StringComparison.Ordinal);
+            if (idx >= 0) result = result[..idx].Trim();
+        }
+
+        // Hard safety net: strip any emoji/symbol characters that slip through
+        result = Regex.Replace(result, @"[\u2190-\u2BFF\uD83C-\uDBFF][\uDC00-\uDFFF]?", "").Trim();
+
+        return result;
     }
 }
