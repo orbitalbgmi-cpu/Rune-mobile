@@ -51,7 +51,11 @@ jobs:
         run: cmake --build ${{ runner.temp }}/llama-build --config Release -j 4
 
       - name: Clone stable-diffusion.cpp
-        run: git clone --depth 1 --recursive https://github.com/leejet/stable-diffusion.cpp ${{ runner.temp }}/sd-src
+        run: |
+          git clone --recursive https://github.com/leejet/stable-diffusion.cpp ${{ runner.temp }}/sd-src
+          cd ${{ runner.temp }}/sd-src
+          git checkout 2eb3845
+          git submodule update --init --recursive
 
       - name: Configure stable-diffusion.cpp for Android
         run: |
