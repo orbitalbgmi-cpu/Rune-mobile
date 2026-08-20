@@ -8,28 +8,13 @@ public partial class MainPage : ContentPage
 {
     public ObservableCollection<ChatMessage> Messages { get; set; } = new();
     private readonly LlamaService _llama = new();
+    private readonly ImageService _image = new();
+    private static readonly string[] ImageCommands = { "/image", "/picture", "/photo" };
 
     public MainPage()
     {
         InitializeComponent();
         BindingContext = this;
-        CheckForCrashLog();
-    }
-
-    private void CheckForCrashLog()
-    {
-        try
-        {
-            var dir = Android.App.Application.Context.GetExternalFilesDir(null)!.AbsolutePath;
-            var path = Path.Combine(dir, "crash-log.txt");
-            if (File.Exists(path))
-            {
-                var content = File.ReadAllText(path);
-                Messages.Add(new ChatMessage { Text = $"Previous crash log:\n{content}", IsUser = false });
-                File.Delete(path);
-            }
-        }
-        catch { }
     }
 
     private async void OnImportChatModelClicked(object sender, EventArgs e)
@@ -86,6 +71,21 @@ public partial class MainPage : ContentPage
         Messages.Add(new ChatMessage { Text = text, IsUser = true });
         InputBox.Text = string.Empty;
 
+        var matchedCommand = ImageCommands.FirstOrDefault(cmd =>
+            text.StartsWith(cmd, StringComparison.OrdinalIgnoreCase));
+
+        if (matchedCommand != null)
+        {
+            var imagePrompt = text[matchedCommand.Length..].Trim();
+            await HandleImageRequestAsync(imagePrompt);
+            return;
+        }
+
+        await HandleChatRequestAsync(text);
+    }
+
+    private async Task HandleChatRequestAsync(string text)
+    {
         if (!_llama.ModelExists)
         {
             Messages.Add(new ChatMessage
@@ -111,6 +111,49 @@ public partial class MainPage : ContentPage
         {
             Messages.Remove(thinking);
             Messages.Add(new ChatMessage { Text = $"Error: {ex}", IsUser = false });
+        }
+
+        ChatList.ScrollTo(Messages.Count - 1);
+    }
+
+    private async Task HandleImageRequestAsync(string prompt)
+    {
+        if (!_image.ModelExists)
+        {
+            Messages.Add(new ChatMessage
+            {
+                Text = "No image model found. Tap 'Import Image Model' above.",
+                IsUser = false
+            });
+            ChatList.ScrollTo(Messages.Count - 1);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            Messages.Add(new ChatMessage { Text = "Add a description after the command, e.g. /image a red bicycle", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+            return;
+        }
+
+        var thinking = new ChatMessage { Text = "Generating image... this can take 15-40 seconds.", IsUser = false };
+        Messages.Add(thinking);
+        ChatList.ScrollTo(Messages.Count - 1);
+
+        try
+        {
+            var pngBytes = await _image.GenerateAsync(prompt);
+            Messages.Remove(thinking);
+            Messages.Add(new ChatMessage
+            {
+                Image = ImageSource.FromStream(() => new MemoryStream(pngBytes)),
+                IsUser = false
+            });
+        }
+        catch (Exception ex)
+        {
+            Messages.Remove(thinking);
+            Messages.Add(new ChatMessage { Text = $"Image generation error: {ex}", IsUser = false });
         }
 
         ChatList.ScrollTo(Messages.Count - 1);
