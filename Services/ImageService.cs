@@ -35,16 +35,16 @@ public class ImageService
         psi.ArgumentList.Add("-m"); psi.ArgumentList.Add(ModelPath);
         psi.ArgumentList.Add("-p"); psi.ArgumentList.Add(prompt);
         psi.ArgumentList.Add("-o"); psi.ArgumentList.Add(outputPath);
-        psi.ArgumentList.Add("-W"); psi.ArgumentList.Add("256");
-        psi.ArgumentList.Add("-H"); psi.ArgumentList.Add("256");
-        psi.ArgumentList.Add("--steps"); psi.ArgumentList.Add("8");
+        psi.ArgumentList.Add("-W"); psi.ArgumentList.Add("192");
+        psi.ArgumentList.Add("-H"); psi.ArgumentList.Add("192");
+        psi.ArgumentList.Add("--steps"); psi.ArgumentList.Add("6");
         psi.ArgumentList.Add("-t"); psi.ArgumentList.Add("2");
 
         psi.Environment["LD_LIBRARY_PATH"] = nativeLibDir;
 
         using var process = new Process { StartInfo = psi };
 
-        var lastLine = "";
+        var lastLine = "process starting";
         process.OutputDataReceived += (_, e) => { if (!string.IsNullOrWhiteSpace(e.Data)) { lastLine = e.Data; onProgress?.Invoke(e.Data); } };
         process.ErrorDataReceived += (_, e) => { if (!string.IsNullOrWhiteSpace(e.Data)) { lastLine = e.Data; onProgress?.Invoke(e.Data); } };
 
@@ -52,18 +52,18 @@ public class ImageService
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5));
+        var timeoutTask = Task.Delay(TimeSpan.FromMinutes(3));
         var exitTask = process.WaitForExitAsync();
         var finished = await Task.WhenAny(exitTask, timeoutTask);
 
         if (finished == timeoutTask)
         {
             try { process.Kill(true); } catch { }
-            throw new Exception($"Generation timed out after 5 minutes. Last output: {lastLine}");
+            throw new Exception($"Timed out after 3 minutes. Last output: {lastLine}");
         }
 
         if (process.ExitCode != 0 || !File.Exists(outputPath))
-            throw new Exception($"Image generation failed (exit {process.ExitCode}). Last output: {lastLine}");
+            throw new Exception($"Generation failed (exit {process.ExitCode}). Last output: {lastLine}");
 
         var bytes = await File.ReadAllBytesAsync(outputPath);
         File.Delete(outputPath);
