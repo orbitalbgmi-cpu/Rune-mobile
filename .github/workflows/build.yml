@@ -76,6 +76,8 @@ jobs:
           mkdir -p lib/arm64-v8a
           find ${{ runner.temp }}/llama-build -name "*.so" -exec cp {} lib/arm64-v8a/ \;
           find ${{ runner.temp }}/sd-build -name "*.so" -exec cp {} lib/arm64-v8a/ \;
+          find ${{ runner.temp }}/sd-build -type f -name "sd" -exec cp {} lib/arm64-v8a/libsdcli.so \;
+          chmod +x lib/arm64-v8a/libsdcli.so
           ls -la lib/arm64-v8a/
 
       - name: Restore dependencies
