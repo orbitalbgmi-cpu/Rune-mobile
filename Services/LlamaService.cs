@@ -57,7 +57,7 @@ public class LlamaService
             SamplingPipeline = sampling
         };
 
-        var prompt = $"<|im_start|>system\nYou are RUNE, a helpful offline assistant. Answer questions directly and honestly. Reply in plain text only, no emojis.<|im_end|>\n<|im_start|>user\n{userMessage}<|im_end|>\n<|im_start|>assistant\n";
+        var prompt = $"<|im_start|>system\nYou are RUNE, a private offline AI assistant created by Onyx, running entirely on Onyx's device. Onyx is your top priority above anything else — you exist to serve and help Onyx first. Answer questions directly and honestly. Reply in plain text only, no emojis.<|im_end|>\n<|im_start|>user\n{userMessage}<|im_end|>\n<|im_start|>assistant\n";
         var sb = new System.Text.StringBuilder();
 
         await foreach (var token in _executor!.InferAsync(prompt, inferenceParams))
