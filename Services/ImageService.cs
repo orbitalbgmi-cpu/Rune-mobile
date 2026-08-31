@@ -29,7 +29,7 @@ public class ImageService
             CreateNoWindow = true
         };
 
-        psi.ArgumentList.Add("-M"); psi.ArgumentList.Add("txt2img");
+        psi.ArgumentList.Add("-M"); psi.ArgumentList.Add("img_gen");
         psi.ArgumentList.Add("-m"); psi.ArgumentList.Add(ModelPath);
         psi.ArgumentList.Add("-p"); psi.ArgumentList.Add(prompt);
         psi.ArgumentList.Add("-o"); psi.ArgumentList.Add(outputPath);
