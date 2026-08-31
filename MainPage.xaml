@@ -1,53 +1,179 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:models="clr-namespace:RuneMobile.Models"
-             x:Class="RuneMobile.MainPage"
-             BackgroundColor="#0d1117">
+using System.Collections.ObjectModel;
+using RuneMobile.Models;
+using RuneMobile.Services;
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+namespace RuneMobile;
 
-        <Label Grid.Row="0" Text="RUNE" FontSize="24" FontAttributes="Bold"
-               TextColor="#e6edf3" Padding="20,15,20,5" />
+public partial class MainPage : ContentPage
+{
+    public ObservableCollection<ChatMessage> Messages { get; set; } = new();
+    private readonly LlamaService _llama = new();
+    private readonly ImageService _image = new();
+    private static readonly string[] ImageCommands = { "/image", "/picture", "/photo" };
 
-        <HorizontalStackLayout Grid.Row="1" Padding="20,0,20,10" Spacing="10">
-            <Button Text="Import Chat Model" FontSize="12" Clicked="OnImportChatModelClicked"
-                    BackgroundColor="#21262d" TextColor="#e6edf3" CornerRadius="8" Padding="10,6" />
-            <Button Text="Import Image Model" FontSize="12" Clicked="OnImportImageModelClicked"
-                    BackgroundColor="#21262d" TextColor="#e6edf3" CornerRadius="8" Padding="10,6" />
-        </HorizontalStackLayout>
+    public MainPage()
+    {
+        InitializeComponent();
+        BindingContext = this;
+    }
 
-        <CollectionView Grid.Row="2" x:Name="ChatList" ItemsSource="{Binding Messages}">
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="models:ChatMessage">
-                    <Grid Padding="15,5">
-                        <Frame BackgroundColor="{Binding BubbleColor}"
-                               HorizontalOptions="{Binding Alignment}"
-                               CornerRadius="14" Padding="12,8" MaximumWidthRequest="280"
-                               BorderColor="Transparent">
-                            <VerticalStackLayout Spacing="6">
-                                <Image Source="{Binding Image}" IsVisible="{Binding HasImage}"
-                                       Aspect="AspectFit" WidthRequest="240" HeightRequest="240" />
-                                <Label Text="{Binding Text}" TextColor="#e6edf3" FontSize="15"
-                                       IsVisible="{Binding HasText}" />
-                            </VerticalStackLayout>
-                        </Frame>
-                    </Grid>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+    private async void OnImportChatModelClicked(object sender, EventArgs e) => await ImportModelAsync("chat-model.gguf");
+    private async void OnImportImageModelClicked(object sender, EventArgs e) => await ImportModelAsync("sd-model.gguf");
 
-        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Padding="12" ColumnSpacing="8">
-            <Frame Grid.Column="0" BackgroundColor="#161b22" CornerRadius="20"
-                   Padding="12,4" BorderColor="#30363d">
-                <Entry x:Name="InputBox" Placeholder="Message RUNE... (/image for pictures)"
-                       PlaceholderColor="#8b949e" TextColor="#e6edf3"
-                       BackgroundColor="Transparent" ReturnCommand="{Binding SendCommand}" />
-            </Frame>
-            <Button Grid.Column="1" Text="➤" WidthRequest="44" HeightRequest="44"
-                    CornerRadius="22" BackgroundColor="#1f6feb" TextColor="White"
-                    Clicked="OnSendClicked" />
-        </Grid>
+    private async Task ImportModelAsync(string targetFileName)
+    {
+        try
+        {
+            var result = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = $"Select {targetFileName}" });
+            if (result == null) return;
 
-    </Grid>
-</ContentPage>
+            var modelsDir = Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null)!.AbsolutePath, "models");
+            Directory.CreateDirectory(modelsDir);
+            var targetPath = Path.Combine(modelsDir, targetFileName);
+
+            Messages.Add(new ChatMessage { Text = $"Copying {targetFileName}...", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+
+            using var sourceStream = await result.OpenReadAsync();
+            using var destStream = File.Create(targetPath);
+            await sourceStream.CopyToAsync(destStream);
+
+            var fileInfo = new FileInfo(targetPath);
+            Messages.Add(new ChatMessage { Text = $"{targetFileName} imported successfully ({fileInfo.Length / 1024 / 1024} MB).", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+        }
+        catch (Exception ex)
+        {
+            Messages.Add(new ChatMessage { Text = $"Import failed: {ex}", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+        }
+    }
+
+    private void OnSaveImageClicked(object sender, EventArgs e)
+    {
+        if (sender is not Button button || button.CommandParameter is not ChatMessage msg || msg.ImageBytes == null) return;
+        try
+        {
+            var fileName = $"RUNE-{DateTime.Now:yyyyMMdd-HHmmss}.png";
+            _image.SaveToGallery(msg.ImageBytes, fileName);
+            Messages.Add(new ChatMessage { Text = $"Saved to Pictures/RUNE/{fileName}", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+        }
+        catch (Exception ex)
+        {
+            Messages.Add(new ChatMessage { Text = $"Save failed: {ex.Message}", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+        }
+    }
+
+    private async void OnSendClicked(object sender, EventArgs e)
+    {
+        var text = InputBox.Text;
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        Messages.Add(new ChatMessage { Text = text, IsUser = true });
+        InputBox.Text = string.Empty;
+
+        var matchedCommand = ImageCommands.FirstOrDefault(cmd => text.StartsWith(cmd, StringComparison.OrdinalIgnoreCase));
+        if (matchedCommand != null)
+        {
+            await HandleImageRequestAsync(text[matchedCommand.Length..].Trim());
+            return;
+        }
+
+        await HandleChatRequestAsync(text);
+    }
+
+    private async Task HandleChatRequestAsync(string text)
+    {
+        if (!_llama.ModelExists)
+        {
+            Messages.Add(new ChatMessage { Text = "No chat model found. Tap 'Import Chat Model' above.", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+            return;
+        }
+
+        var thinking = new ChatMessage { Text = "...", IsUser = false };
+        Messages.Add(thinking);
+        ChatList.ScrollTo(Messages.Count - 1);
+
+        try
+        {
+            var reply = await _llama.GetReplyAsync(text);
+            Messages.Remove(thinking);
+            Messages.Add(new ChatMessage { Text = reply, IsUser = false });
+        }
+        catch (Exception ex)
+        {
+            Messages.Remove(thinking);
+            Messages.Add(new ChatMessage { Text = $"Error: {ex}", IsUser = false });
+        }
+
+        ChatList.ScrollTo(Messages.Count - 1);
+    }
+
+    private async Task HandleImageRequestAsync(string prompt)
+    {
+        if (!_image.ModelExists)
+        {
+            Messages.Add(new ChatMessage { Text = "No image model found. Tap 'Import Image Model' above.", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            Messages.Add(new ChatMessage { Text = "Add a description after the command, e.g. /image a red bicycle", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+            return;
+        }
+
+        var thinking = new ChatMessage { Text = "Loading model... (0s)", IsUser = false };
+        Messages.Add(thinking);
+        ChatList.ScrollTo(Messages.Count - 1);
+
+        var lastNativeLine = "";
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        using var tickerCts = new CancellationTokenSource();
+
+        var tickerTask = Task.Run(async () =>
+        {
+            while (!tickerCts.Token.IsCancellationRequested)
+            {
+                await Task.Delay(1000, tickerCts.Token).ContinueWith(_ => { });
+                if (tickerCts.Token.IsCancellationRequested) break;
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    var idx = Messages.IndexOf(thinking);
+                    if (idx < 0) return;
+                    thinking.Text = string.IsNullOrEmpty(lastNativeLine)
+                        ? $"Loading model... ({stopwatch.Elapsed.Seconds}s)"
+                        : $"{lastNativeLine} ({stopwatch.Elapsed.Seconds}s)";
+                    Messages[idx] = thinking;
+                });
+            }
+        });
+
+        try
+        {
+            var pngBytes = await _image.GenerateAsync(prompt, line => lastNativeLine = line);
+
+            tickerCts.Cancel();
+            Messages.Remove(thinking);
+            Messages.Add(new ChatMessage
+            {
+                Image = ImageSource.FromStream(() => new MemoryStream(pngBytes)),
+                ImageBytes = pngBytes,
+                IsUser = false
+            });
+        }
+        catch (Exception ex)
+        {
+            tickerCts.Cancel();
+            Messages.Remove(thinking);
+            Messages.Add(new ChatMessage { Text = $"Image generation error: {ex.Message}", IsUser = false });
+        }
+
+        ChatList.ScrollTo(Messages.Count - 1);
+    }
+}
