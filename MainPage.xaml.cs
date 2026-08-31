@@ -17,32 +17,18 @@ public partial class MainPage : ContentPage
         BindingContext = this;
     }
 
-    private async void OnImportChatModelClicked(object sender, EventArgs e)
-    {
-        await ImportModelAsync("chat-model.gguf");
-    }
-
-    private async void OnImportImageModelClicked(object sender, EventArgs e)
-    {
-        await ImportModelAsync("sd-model.gguf");
-    }
+    private async void OnImportChatModelClicked(object sender, EventArgs e) => await ImportModelAsync("chat-model.gguf");
+    private async void OnImportImageModelClicked(object sender, EventArgs e) => await ImportModelAsync("sd-model.gguf");
 
     private async Task ImportModelAsync(string targetFileName)
     {
         try
         {
-            var result = await FilePicker.Default.PickAsync(new PickOptions
-            {
-                PickerTitle = $"Select {targetFileName}"
-            });
-
+            var result = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = $"Select {targetFileName}" });
             if (result == null) return;
 
-            var modelsDir = Path.Combine(
-                Android.App.Application.Context.GetExternalFilesDir(null)!.AbsolutePath,
-                "models");
+            var modelsDir = Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null)!.AbsolutePath, "models");
             Directory.CreateDirectory(modelsDir);
-
             var targetPath = Path.Combine(modelsDir, targetFileName);
 
             Messages.Add(new ChatMessage { Text = $"Copying {targetFileName}...", IsUser = false });
@@ -63,6 +49,23 @@ public partial class MainPage : ContentPage
         }
     }
 
+    private void OnSaveImageClicked(object sender, EventArgs e)
+    {
+        if (sender is not Button button || button.CommandParameter is not ChatMessage msg || msg.ImageBytes == null) return;
+        try
+        {
+            var fileName = $"RUNE-{DateTime.Now:yyyyMMdd-HHmmss}.png";
+            _image.SaveToGallery(msg.ImageBytes, fileName);
+            Messages.Add(new ChatMessage { Text = $"Saved to Pictures/RUNE/{fileName}", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+        }
+        catch (Exception ex)
+        {
+            Messages.Add(new ChatMessage { Text = $"Save failed: {ex.Message}", IsUser = false });
+            ChatList.ScrollTo(Messages.Count - 1);
+        }
+    }
+
     private async void OnSendClicked(object sender, EventArgs e)
     {
         var text = InputBox.Text;
@@ -71,13 +74,10 @@ public partial class MainPage : ContentPage
         Messages.Add(new ChatMessage { Text = text, IsUser = true });
         InputBox.Text = string.Empty;
 
-        var matchedCommand = ImageCommands.FirstOrDefault(cmd =>
-            text.StartsWith(cmd, StringComparison.OrdinalIgnoreCase));
-
+        var matchedCommand = ImageCommands.FirstOrDefault(cmd => text.StartsWith(cmd, StringComparison.OrdinalIgnoreCase));
         if (matchedCommand != null)
         {
-            var imagePrompt = text[matchedCommand.Length..].Trim();
-            await HandleImageRequestAsync(imagePrompt);
+            await HandleImageRequestAsync(text[matchedCommand.Length..].Trim());
             return;
         }
 
@@ -88,11 +88,7 @@ public partial class MainPage : ContentPage
     {
         if (!_llama.ModelExists)
         {
-            Messages.Add(new ChatMessage
-            {
-                Text = "No chat model found. Tap 'Import Chat Model' above.",
-                IsUser = false
-            });
+            Messages.Add(new ChatMessage { Text = "No chat model found. Tap 'Import Chat Model' above.", IsUser = false });
             ChatList.ScrollTo(Messages.Count - 1);
             return;
         }
@@ -120,11 +116,7 @@ public partial class MainPage : ContentPage
     {
         if (!_image.ModelExists)
         {
-            Messages.Add(new ChatMessage
-            {
-                Text = "No image model found. Tap 'Import Image Model' above.",
-                IsUser = false
-            });
+            Messages.Add(new ChatMessage { Text = "No image model found. Tap 'Import Image Model' above.", IsUser = false });
             ChatList.ScrollTo(Messages.Count - 1);
             return;
         }
@@ -136,24 +128,35 @@ public partial class MainPage : ContentPage
             return;
         }
 
-        var thinking = new ChatMessage { Text = "Generating image... this can take 15-40 seconds.", IsUser = false };
+        var thinking = new ChatMessage { Text = "Starting...", IsUser = false };
         Messages.Add(thinking);
         ChatList.ScrollTo(Messages.Count - 1);
 
         try
         {
-            var pngBytes = await _image.GenerateAsync(prompt);
+            var pngBytes = await _image.GenerateAsync(prompt, progressLine =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    thinking.Text = progressLine;
+                    var idx = Messages.IndexOf(thinking);
+                    if (idx >= 0) Messages[idx] = thinking;
+                    ChatList.ScrollTo(Messages.Count - 1);
+                });
+            });
+
             Messages.Remove(thinking);
             Messages.Add(new ChatMessage
             {
                 Image = ImageSource.FromStream(() => new MemoryStream(pngBytes)),
+                ImageBytes = pngBytes,
                 IsUser = false
             });
         }
         catch (Exception ex)
         {
             Messages.Remove(thinking);
-            Messages.Add(new ChatMessage { Text = $"Image generation error: {ex}", IsUser = false });
+            Messages.Add(new ChatMessage { Text = $"Image generation error: {ex.Message}", IsUser = false });
         }
 
         ChatList.ScrollTo(Messages.Count - 1);
