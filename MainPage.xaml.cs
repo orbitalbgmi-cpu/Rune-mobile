@@ -128,23 +128,37 @@ public partial class MainPage : ContentPage
             return;
         }
 
-        var thinking = new ChatMessage { Text = "Starting...", IsUser = false };
+        var thinking = new ChatMessage { Text = "Loading model... (0s)", IsUser = false };
         Messages.Add(thinking);
         ChatList.ScrollTo(Messages.Count - 1);
 
-        try
+        var lastNativeLine = "";
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        using var tickerCts = new CancellationTokenSource();
+
+        var tickerTask = Task.Run(async () =>
         {
-            var pngBytes = await _image.GenerateAsync(prompt, progressLine =>
+            while (!tickerCts.Token.IsCancellationRequested)
             {
+                await Task.Delay(1000, tickerCts.Token).ContinueWith(_ => { });
+                if (tickerCts.Token.IsCancellationRequested) break;
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    thinking.Text = progressLine;
                     var idx = Messages.IndexOf(thinking);
-                    if (idx >= 0) Messages[idx] = thinking;
-                    ChatList.ScrollTo(Messages.Count - 1);
+                    if (idx < 0) return;
+                    thinking.Text = string.IsNullOrEmpty(lastNativeLine)
+                        ? $"Loading model... ({stopwatch.Elapsed.Seconds}s)"
+                        : $"{lastNativeLine} ({stopwatch.Elapsed.Seconds}s)";
+                    Messages[idx] = thinking;
                 });
-            });
+            }
+        });
 
+        try
+        {
+            var pngBytes = await _image.GenerateAsync(prompt, line => lastNativeLine = line);
+
+            tickerCts.Cancel();
             Messages.Remove(thinking);
             Messages.Add(new ChatMessage
             {
@@ -155,6 +169,7 @@ public partial class MainPage : ContentPage
         }
         catch (Exception ex)
         {
+            tickerCts.Cancel();
             Messages.Remove(thinking);
             Messages.Add(new ChatMessage { Text = $"Image generation error: {ex.Message}", IsUser = false });
         }
