@@ -10,7 +10,7 @@ public class LlamaService
 {
     private LLamaWeights? _model;
     private LLamaContext? _context;
-    private InteractiveExecutor? _executor;
+    private StatelessExecutor? _executor;
     private bool _initialized;
 
     public string ModelPath => Path.Combine(
@@ -35,7 +35,7 @@ public class LlamaService
 
         _model = LLamaWeights.LoadFromFile(parameters);
         _context = _model.CreateContext(parameters);
-        _executor = new InteractiveExecutor(_context);
+        _executor = new StatelessExecutor(_model, parameters);
 
         _initialized = true;
     }
@@ -57,7 +57,7 @@ public class LlamaService
             SamplingPipeline = sampling
         };
 
-        var prompt = $"<|im_start|>system\nYou are RUNE, a helpful offline assistant. Reply in plain text only. Never use emojis or special symbols.<|im_end|>\n<|im_start|>user\n{userMessage}<|im_end|>\n<|im_start|>assistant\n";
+        var prompt = $"<|im_start|>system\nYou are RUNE, a helpful offline assistant. Answer questions directly and honestly. Reply in plain text only, no emojis.<|im_end|>\n<|im_start|>user\n{userMessage}<|im_end|>\n<|im_start|>assistant\n";
         var sb = new System.Text.StringBuilder();
 
         await foreach (var token in _executor!.InferAsync(prompt, inferenceParams))
@@ -73,7 +73,6 @@ public class LlamaService
             if (idx >= 0) result = result[..idx].Trim();
         }
 
-        // Hard safety net: strip any emoji/symbol characters that slip through
         result = Regex.Replace(result, @"[\u2190-\u2BFF\uD83C-\uDBFF][\uDC00-\uDFFF]?", "").Trim();
 
         return result;
