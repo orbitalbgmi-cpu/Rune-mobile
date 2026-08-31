@@ -43,12 +43,16 @@ public class ImageService
         using var process = Process.Start(psi);
         if (process == null) throw new Exception("Failed to start image generation process");
 
+        // Read BOTH streams concurrently to avoid a pipe-buffer deadlock
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
         var stderrTask = process.StandardError.ReadToEndAsync();
+
         await process.WaitForExitAsync();
+        var stdout = await stdoutTask;
         var stderr = await stderrTask;
 
         if (process.ExitCode != 0 || !File.Exists(outputPath))
-            throw new Exception($"Image generation failed (exit {process.ExitCode}): {stderr}");
+            throw new Exception($"Image generation failed (exit {process.ExitCode}): {stderr}\n{stdout}");
 
         var bytes = await File.ReadAllBytesAsync(outputPath);
         File.Delete(outputPath);
